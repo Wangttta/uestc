@@ -86,16 +86,16 @@ def draw_graph(degrees):
             # 3.2.4. 当前 other_node 还有剩余度数，为 other_node 与 node 建立关联边
             if graph.degree[other_node_idx] < other_node_deg:
                 graph.add_edge(node_idx, other_node_idx)
-    # 4. 返回创建完成的
+    # 4. 返回创建完成的图
     return graph
 
 
 def print_result(param, tool):
     """
-    打印程序运行结果
-    :param param:
-    :param tool:
-    :return:
+    打印程序运行结果到 GUI 组件中
+    :param param: GUI 传入的参数，也就是度序列
+    :param tool: GUI 组件，包含根节点和显示组件，其中显示组件用于显示错误信息或者生成的简单图
+    :return: None
     """
     degrees = [int(i) for i in param.split()]
     graph = draw_graph(degrees)
