@@ -31,9 +31,9 @@ def havel_hakimi(degrees):
             return False
         # 2.4. 对剩余度序列的前 d 个元素执行减一操作
         degrees[:d] = [x - 1 for x in degrees[:d]]
-        degrees = [x for x in degrees if x > 0]  # 移除末尾小于等于零的度
         # 2.5. 度序列重排序
         degrees.sort(reverse=True)
+        degrees = [x for x in degrees if x > 0]  # 移除末尾小于等于零的度
     # 3. 其余情况均返回可图序列
     return True
 
@@ -57,7 +57,7 @@ def draw_graph(degrees):
     """
     根据给定的度序列绘制简单图
     :param degrees: 指定的度序列，使用一个 int 数组传入，度序列可以无序
-    :return: 如果度序列可图，则返回一个 networkx.Graph，否则返回 None
+    :return: 如果度序列可图，则返回一个 networkx.Graph ，否则返回 None
     """
     # 0. 判断度序列是否可图
     if not havel_hakimi(degrees):
