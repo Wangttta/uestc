@@ -1,0 +1,33 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+actor User
+boundary Client
+participant RpcClientProxy
+boundary Server
+participant RpcServer
+collections ZooKeeper
+
+
+Server --> ZooKeeper : 服务端启动 \n执行服务注册
+ZooKeeper ---> Server : 注册完成
+
+====
+
+autonumber
+
+User --> Client : 请求服务 A
+Client --> Client : 服务 A 依赖于远程服务 B
+Client --> RpcClientProxy : 本地调用服务 B（类似）
+RpcClientProxy --> RpcClientProxy : 创建代理\n封装参数
+RpcClientProxy --> ZooKeeper : 服务发现
+ZooKeeper ---> RpcClientProxy : 返回 Server 地址
+RpcClientProxy --> RpcServer : 请求服务 B，基于 Socket BIO
+RpcServer --> RpcServer : 本地调用服务 B\n组装 RpcResponse
+RpcServer ---> RpcClientProxy : 返回 RpcResponse
+RpcClientProxy ---> Client : 解包 RpcResponse，返回实际响应
+Client ---> User : 返回实际响应
+
+@enduml

@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+
+    <groupId>cn.uestc.ew</groupId>
+    <artifactId>rpc</artifactId>
+    <version>0.0.1</version>
+    <name>rpc</name>
+    <description>rpc</description>
+    <packaging>pom</packaging>
+
+
+    <properties>
+        <project.version>0.0.1</project.version>
+        <java.version>19</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <version.slf4j>2.0.1</version.slf4j>
+        <version.spring>5.3.23</version.spring>
+        <version.protostuff>1.0.9</version.protostuff>
+        <version.objenesis>2.1</version.objenesis>
+        <version.cglib>3.1</version.cglib>
+        <version.zookeeper>3.8.0</version.zookeeper>
+        <version.zkclient>0.11</version.zkclient>
+        <version.commons-lang>3.12.0</version.commons-lang>
+        <version.commons-collections>4.4</version.commons-collections>
+        <version.lombok>1.18.24</version.lombok>
+        <version.fastjson>2.0.18</version.fastjson>
+        <version.maven-compiler-plugin>3.2</version.maven-compiler-plugin>
+        <version.maven-surefire-plugin>2.18.1</version.maven-surefire-plugin>
+        <version.maven-source-plugin>2.4</version.maven-source-plugin>
+        <version.maven-javadoc-plugin>2.10.3</version.maven-javadoc-plugin>
+    </properties>
+
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- SLF4J -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-log4j12</artifactId>
+                <version>${version.slf4j}</version>
+            </dependency>
+
+            <!-- Spring -->
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-context</artifactId>
+                <version>${version.spring}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-test</artifactId>
+                <version>${version.spring}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- ZooKeeper -->
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper</artifactId>
+                <version>${version.zookeeper}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.101tec</groupId>
+                <artifactId>zkclient</artifactId>
+                <version>${version.zkclient}</version>
+            </dependency>
+
+            <!-- Protostuff -->
+            <dependency>
+                <groupId>com.dyuproject.protostuff</groupId>
+                <artifactId>protostuff-core</artifactId>
+                <version>${version.protostuff}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.dyuproject.protostuff</groupId>
+                <artifactId>protostuff-runtime</artifactId>
+                <version>${version.protostuff}</version>
+            </dependency>
+
+            <!-- Objenesis -->
+            <dependency>
+                <groupId>org.objenesis</groupId>
+                <artifactId>objenesis</artifactId>
+                <version>${version.objenesis}</version>
+            </dependency>
+
+            <!-- CGLib -->
+            <dependency>
+                <groupId>cglib</groupId>
+                <artifactId>cglib</artifactId>
+                <version>${version.cglib}</version>
+            </dependency>
+
+            <!-- FastJSON -->
+            <dependency>
+                <groupId>com.alibaba.fastjson2</groupId>
+                <artifactId>fastjson2</artifactId>
+                <version>${version.fastjson}</version>
+            </dependency>
+
+            <!-- Apache Commons -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${version.commons-lang}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-collections4</artifactId>
+                <version>${version.commons-collections}</version>
+            </dependency>
+
+            <!-- Lombok -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${version.lombok}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+
+    <build>
+        <plugins>
+            <!-- Compiler -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${version.maven-compiler-plugin}</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${version.maven-source-plugin}</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Test -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${version.maven-surefire-plugin}</version>
+                <configuration>
+                    <skipTests>true</skipTests>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>yang-xiangdong</name>
+            <url>https://maven.pkg.github.com/yang-xiangdong/rpc</url>
+        </repository>
+    </distributionManagement>
+
+
+    <modules>
+        <module>rpc-common</module>
+        <module>rpc-registry</module>
+        <module>rpc-client</module>
+        <module>rpc-server</module>
+    </modules>
+</project>

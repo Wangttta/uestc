@@ -1,0 +1,44 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>cn.uestc.ew</groupId>
+        <artifactId>rpc</artifactId>
+        <version>0.0.1</version>
+    </parent>
+
+    <artifactId>rpc-server</artifactId>
+    <name>rpc-server</name>
+
+    <dependencies>
+        <!-- Spring -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+        <!-- FastJSON -->
+        <dependency>
+            <groupId>com.alibaba.fastjson2</groupId>
+            <artifactId>fastjson2</artifactId>
+        </dependency>
+        <!-- CGLib -->
+        <dependency>
+            <groupId>cglib</groupId>
+            <artifactId>cglib</artifactId>
+        </dependency>
+        <!-- RPC Common -->
+        <dependency>
+            <groupId>cn.uestc.ew</groupId>
+            <artifactId>rpc-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- RPC Registry -->
+        <dependency>
+            <groupId>cn.uestc.ew</groupId>
+            <artifactId>rpc-registry</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>

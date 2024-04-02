@@ -1,0 +1,16 @@
+@startwbs
+* rpc
+** rpc framework (Dev requirements)
+***_ rpc-common
+***_ rpc-registry
+***_ rpc-client
+***_ rpc-server
+
+** rpc sample (Just have a try)
+*** rpc server sample (Runnable web app)
+****_ sample-rpc-api
+****_ sample-rpc-server
+*** rpc client sample (Runnable web app)
+****_ sample-rpc-api
+****_ sample-rpc-client
+@endwbs

@@ -1,0 +1,28 @@
+@startuml
+'https://plantuml.com/component-diagram
+
+package "RPC Framework" {
+  [rpc-common]
+  [rpc-registry]
+  [rpc-client]
+  [rpc-server]
+
+  [rpc-common] --> [rpc-registry]
+  [rpc-registry] --> [rpc-client]
+  [rpc-registry] --> [rpc-server]
+}
+
+package "RPC Server Sample" {
+  [sample-rpc-api]
+  [sample-rpc-server]
+  [rpc-server] ---> [sample-rpc-server]
+}
+
+package "RPC Client Sample" as RCS {
+  [sample-rpc-client]
+  [rpc-client] --> [sample-rpc-client]
+}
+
+[sample-rpc-api] ---> RCS
+
+@enduml

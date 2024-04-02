@@ -1,0 +1,31 @@
+@startuml
+'https://plantuml.com/deployment-diagram
+
+cloud vpc {
+    node ec1 {
+    node Server_1 as s1
+  }
+
+  node ec2 {
+    node Server_2 as s2
+    node Server_3 as s3
+  }
+}
+
+node ZooKeeper_Main as zk1
+node ZooKeeper_2 as zk2
+node ZooKeeper_3 as zk3
+zk1 <--> zk2 : Sync
+zk1 <--> zk3 : Sync
+
+cloud cloud as c
+
+zk1 <--right-> c
+c <--left-> s1
+c <--left-> s2
+c <--left-> s3
+
+node Client as c1
+c <--up-> c1
+
+@enduml

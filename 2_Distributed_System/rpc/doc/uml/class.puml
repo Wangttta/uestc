@@ -1,0 +1,105 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+package "rpc-common" {
+
+    class RpcRequest {
+      - String requestId
+      - int retryTimes
+      - String interfaceName
+      - String serviceVersion
+      - String methodName
+      - Object[] parameters
+      - Class<?>[] parameterTypes
+    }
+
+
+    class RpcResponse {
+      - String requestId
+      - Exception exception
+      - Object result
+    }
+
+    class RpcEncoder {
+      + byte[] littleEndian(int num)
+    }
+
+    class RpcDecoder {
+      + int littleEndian(byte[] bytes)
+    }
+}
+
+
+
+package "rpc-registry" {
+
+    interface ServiceRegistry {
+      + void register(serviceName, serviceAddress)
+    }
+
+    interface ServiceDiscover {
+      + String discover(serviceName)
+    }
+
+    class ZkServiceRegistry {
+      - ZkClient zkClient
+      + void register(serviceName, serviceAddress)
+    }
+
+    class ZkServiceDiscover {
+      - ZkClient zkClient
+      + String discover(serviceName)
+    }
+
+    ServiceRegistry <|.. ZkServiceRegistry
+    ServiceDiscover <|.. ZkServiceDiscover
+}
+
+
+package "rpc-client" {
+
+    class RpcClientProxy {
+      + <T> T createProxy(serviceClass)
+      - RpcRequest buildRpcRequest(method, args)
+      - String discover(serviceName)
+      - RpcResponse sendOrRetry(RpcRequest)
+    }
+
+    interface RpcClient {
+      + RpcResponse send(RpcRequest request)
+    }
+
+    class SocketRpcClient {
+      - String host
+      - String port
+      - String rpcConfig
+      + RpcResponse send(RpcRequest request)
+    }
+
+    SocketRpcClient ..|> RpcClient
+    RpcClientProxy ..> RpcClient
+    RpcClientProxy ..> ServiceDiscover
+}
+
+
+package "rpc-server" {
+
+    interface RpcServer {
+      + void startup()
+    }
+
+    class SocketRpcServer {
+      - Map<serviceName, serviceBean> serviceMap
+      - void scanService()
+      - void registerService()
+      + void startup()
+      - RpcResponse handle(rpcRequest)
+      - Object call(rpcRequest)
+    }
+
+    SocketRpcServer ..|> RpcServer
+    SocketRpcServer ..> ServiceRegistry
+}
+
+
+@enduml
