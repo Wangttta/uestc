@@ -1,6 +1,7 @@
 # RPC Simple Framework ( With Samples )
 
-![Status](https://github.com/yang-xiangdong/rpc/actions/workflows/maven-publish.yml/badge.svg)
+
+[![Maven Package](https://github.com/yang-xiangdong/uestc/actions/workflows/P2-RPC-MavenPublish.yml/badge.svg)](https://github.com/yang-xiangdong/uestc/actions/workflows/P2-RPC-MavenPublish.yml)
 ![Label](https://img.shields.io/badge/Dish-yes-yellowgreen)
 ![Type](https://img.shields.io/badge/Homework-Distributed%20System-blue)
 
