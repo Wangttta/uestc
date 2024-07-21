@@ -27,9 +27,9 @@ jobs:
         distribution: 'temurin'
 
     - name: Build with Maven
-      run: mvn -B package -e --file 2_Distributed_System/rpc/pom.xml
+      run: mvn -B package --file 2_Distributed_System/rpc/pom.xml
 
     - name: Publish to GitHub Packages Apache Maven
-      run: mvn -B deploy -DskipTests=true
+      run: mvn -B deploy -DskipTests=true --file 2_Distributed_System/rpc/pom.xml
       env:
         GITHUB_TOKEN: ${{ github.token }}
