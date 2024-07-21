@@ -9,12 +9,6 @@ on:
       - closed
     branches:
       - main
-<<<<<<< Updated upstream
-  pull_request:
-    branches:
-      - main
-=======
->>>>>>> Stashed changes
 
 jobs:
   build:
