@@ -165,7 +165,7 @@
         <repository>
             <id>github</id>
             <name>yang-xiangdong</name>
-            <url>https://maven.pkg.github.com/yang-xiangdong/rpc</url>
+            <url>https://maven.pkg.github.com/yang-xiangdong/uestc</url>
         </repository>
     </distributionManagement>
 
