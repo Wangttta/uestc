@@ -30,6 +30,6 @@ jobs:
       run: mvn -B package -e --file 2_Distributed_System/rpc/pom.xml
 
     - name: Publish to GitHub Packages Apache Maven
-      run: mvn deploy -s $GITHUB_WORKSPACE/2_Distributed_System/rpc/settings.xml
+      run: mvn -B deploy -DskipTests=true
       env:
         GITHUB_TOKEN: ${{ github.token }}
