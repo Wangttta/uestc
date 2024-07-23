@@ -1,7 +1,10 @@
 import os
-import subprocess
 import sys
-import tempfile
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import os
+import sys
 import time
 
 import numpy as np
@@ -13,8 +16,8 @@ from torch.utils.tensorboard import SummaryWriter
 from data_loader import DataLoader
 from arguments import get_args
 
-from src._model.transformer import Transformer
-from src._common.util import *
+from _model.transformer import Transformer
+from _common.util import *
 
 
 class Runner:
@@ -38,11 +41,12 @@ class Runner:
         self.batch_count = 0
     
     def train(self):
-        # 0. Pre work
+        # 0. 开启训练模式
+        print("----------------------Train----------------------")
         self.model.train()
-        # 1. Load training data
+        # 1. 加载训练数据（train.source.cn.txt，train.target.en.txt）
         X, Y = self.loader.load_train_data()
-        # 2. Start training
+        # 2. 训练 n_epoch 轮，每轮
         for epoch in range(self.args.n_epoch):
             for index, _ in self.loader.get_batch_indices(len(X), args.batch_size):
                 # 2.1. 获取一批数据
@@ -59,25 +63,45 @@ class Runner:
                 self.writer.add_scalar("Loss", loss.detach().cpu().numpy(), self.batch_count)
             # 2.4. 保存模型
             if epoch % self.args.save_rate == 0 or epoch == self.args.n_epoch:
-                torch.save(self.model.state_dict(), os.path.join(self.save_path_model, "transformer.pth"))
+                torch.save(self.model.state_dict(), os.path.join(self.save_path_model, f"transformer_{epoch}.pth"))
             # 2.5. 评估
             # self.evaluate(epoch)
         # 3. 清理工作
         self.writer.close()
 
-    def evaluate(self, epoch, score_list):
-        # Load data
-        X, sources, targets = self.loader.load_test_data()
-        cn2idx, idx2cn = self.loader.load_cn_vocab()
-        en2idx, idx2en = self.loader.load_en_vocab()
+    def evaluate(self):
+        # 0. 开启推理模式
+        print("----------------------Evaluate----------------------")
         self.model.eval()
+        # 1. 加载测试数据（test.source.cn.txt）
+        X, sources, targets = self.loader.load_test_data()
+        # 2. 分批次测试
+        for i in range(len(X) // self.args.batch_size_evaluate):
+            start = i * self.args.batch_size_evaluate
+            end = (i + 1) * self.args.batch_size_evaluate
+            X_batch, sources_batch, targets_batch = X[start:end], sources[start:end], targets[start:end]
 
-        for i in range(len(X) // self.args.batch_size_valid):
-            start = i * self.args.batch_size_valid
-            end = (i + 1) * self.args.batch_size_valid
-            x_, sources_, targets_ = X[start:end], sources[start:end], targets[start:end]
+    def inference(self):
+        # 0. 开启推理模式，加载模型参数
+        print("----------------------Inference----------------------")
+        self.model.eval()
+        self.model.load_state_dict(torch.load(self.args.model_path))
+        # 1. 加载测试数据
+        X, sources, targets = self.loader.load_test_data()
+        for i in range(self.args.n_inference):
+            idx = np.random.randint(0, len(X))
+            x = X[idx]
+            x = torch.LongTensor(x).unsqueeze(0).to(self.args.device)
+            y = torch.zeros(1, self.args.max_len, dtype=torch.int64, device=self.args.device)
+            # 2. 测试
+            predict = self.model(x, y)
+            predict = torch.argmax(predict, dim=-1).detach().numpy()
+            print(f"Question({i}) => {sources[i]}")
+            print(f"Expected({i}) => {targets[i]}")
+            print(f"Answer({i}) => {self.loader.embedding2text(predict.squeeze())}")
+            print("------------------------------")
 
-
+        
 if __name__ == "__main__":
 
     # 1. 获取配置
@@ -88,4 +112,9 @@ if __name__ == "__main__":
     runner = Runner(args)
 
     # 3. 训练
-    runner.train()
+    if args.inference:
+        runner.inference()
+    elif args.evaluate:
+        runner.evaluate()
+    else:
+        runner.train()

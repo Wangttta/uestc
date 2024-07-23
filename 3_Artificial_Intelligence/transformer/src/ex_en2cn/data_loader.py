@@ -4,7 +4,7 @@ import random
 import numpy as np
 from collections import Counter
 
-from src._common.util import *
+from _common.util import *
 
 
 class DataLoader:
@@ -127,4 +127,21 @@ class DataLoader:
             for word, cnt in word2cnt.most_common(len(word2cnt)):
                 fout.write(u"{}\t{}\n".format(word, cnt))
 
-    
+    def text2embedding(self, text):
+        input_seq = list(text)
+        embedding = np.zeros(self.args.max_len, dtype=np.int64)
+        for i, letter in enumerate(input_seq):
+            assert letter in self.cn2idx, f"词表中无法检索到该字符：{letter}"
+            embedding[i] = self.cn2idx[letter]
+        embedding[len(input_seq):] = self.cn2idx["<PAD>"]
+        embedding[len(input_seq)] = self.cn2idx["</S>"]
+        return embedding
+
+    def embedding2text(self, embedding):
+        output_seq = []
+        for idx in embedding:
+            letter = self.idx2en[idx]
+            if letter == "</S>":
+                break
+            output_seq.append(letter)
+        return ' '.join(output_seq)

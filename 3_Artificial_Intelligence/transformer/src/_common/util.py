@@ -4,7 +4,7 @@ import torch.nn as nn
 
 
 def get_abs_path(root=None, rel_path=None):
-    abs_path = os.path.join(os.getcwd(), "src") if root is None else root 
+    abs_path = os.path.join(os.getcwd(), "3_Artificial_Intelligence", "transformer", "src") if root is None else root 
     if rel_path is not None:
         abs_path = os.path.join(abs_path, rel_path)
     return abs_path
