@@ -1,11 +1,32 @@
 import math
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+from torch.nn.parameter import Parameter
 
 
 class TokenEmbedding(nn.Embedding):
     def __init__(self, vocab_size, d_model):
         super(TokenEmbedding, self).__init__(num_embeddings=vocab_size, embedding_dim=d_model)
+
+
+class AbsolutePositionalEmbedding(nn.Module):
+
+    def __init__(self, vocab_size, d_model, zeros_pad=True, scale=True):
+        super(AbsolutePositionalEmbedding, self).__init__()
+        self.vocab_size, self.d_model, self.zeros_pad = vocab_size, d_model, zeros_pad
+        self.zeros_pad, self.scale = zeros_pad, scale
+        self.embedding_table = Parameter(torch.Tensor(vocab_size, d_model))
+        nn.init.xavier_normal_(self.embedding_table.data)
+        if self.zeros_pad:
+            self.embedding_table.data[0, :].fill_(0)
+
+    def forward(self, x):
+        self.padding_idx = 0 if self.zeros_pad else -1
+        outputs = F.embedding(x, self.embedding_table, 0, None, 2, False, False)
+        if self.scale:
+            outputs = outputs * (self.d_model ** 0.5)
+        return outputs
 
 
 class PositionalEmbedding(nn.Module):
@@ -17,7 +38,7 @@ class PositionalEmbedding(nn.Module):
     形成位置编码后的向量。
     """
 
-    def __init__(self, d_model, max_len, device):
+    def __init__(self, d_model, max_len):
         """
         位置编码公式：
         - PE(pos, 2i) = sin(pos / (10000^(2i / d_model)))
@@ -27,10 +48,9 @@ class PositionalEmbedding(nn.Module):
         ----------
         d_model: 模型中潜在表示向量（Embedding）的维度
         max_len: 模型允许的最大输入序列长度
-        device: 模型运行的硬件设备（CPU，GPU）
         """
         super(PositionalEmbedding, self).__init__()
-        embedding_table = torch.zeros(max_len, d_model, dtype=torch.float32, device=device, requires_grad=False)
+        embedding_table = torch.zeros(max_len, d_model, dtype=torch.float32, requires_grad=False)
         pos = torch.arange(start=0, end=max_len, dtype=torch.float32).unsqueeze(1)  # pos => dimension: max_len * 1
         _2i = torch.arange(start=0, end=d_model, step=2, dtype=torch.float32)  # _2i => dimension: d_model_2 = d_model / 2
         embedding_table[:, 0::2] = torch.sin(pos / (10000 ** (_2i / d_model)))  # _2i => dimension after broadcast: 1 * d_model_2 => max_len * d_model_2
@@ -50,8 +70,7 @@ class PositionalEmbedding(nn.Module):
     def test_position_encoding(cls):
         d_model = 6   # Embedding 向量的维度
         max_len = 10  # 输入序列的最大长度（最大单词数量）
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        pe = PositionalEmbedding(d_model, max_len, device)
+        pe = PositionalEmbedding(d_model, max_len)
         x = torch.randn(10, d_model)  # 随机生成 10 个 embedding 作为输入
         pe_result = pe.forward(x)
         print("---------x----------")
@@ -64,10 +83,10 @@ class PositionalEmbedding(nn.Module):
 
 class TransformerEmbedding(nn.Module):
 
-    def __init__(self, vocab_size, d_model, max_len, drop_prob, device) -> None:
+    def __init__(self, vocab_size, d_model, max_len, drop_prob, sinusoid=True, zeros_pad=True, scale=True) -> None:
         super(TransformerEmbedding, self).__init__()
         self.tok_emb = TokenEmbedding(vocab_size, d_model)
-        self.pos_emb = PositionalEmbedding(d_model, max_len, device)
+        self.pos_emb = PositionalEmbedding(d_model, max_len) if sinusoid else AbsolutePositionalEmbedding(vocab_size, d_model, zeros_pad=zeros_pad, scale=scale)
         self.drop_out = nn.Dropout(p=drop_prob)
 
     def forward(self, x):
@@ -181,9 +200,9 @@ class EncoderLayer(nn.Module):
 
 class Encoder(nn.Module):
 
-    def __init__(self, n_layers, vocab_size, d_model, max_len, n_head, ffn_hidden, drop_prob, device) -> None:
+    def __init__(self, n_layers, vocab_size, d_model, max_len, n_head, ffn_hidden, drop_prob) -> None:
         super(Encoder, self).__init__()
-        self.embedding = TransformerEmbedding(vocab_size=vocab_size, d_model=d_model, max_len=max_len, drop_prob=drop_prob, device=device)
+        self.embedding = TransformerEmbedding(vocab_size=vocab_size, d_model=d_model, max_len=max_len, drop_prob=drop_prob, sinusoid=False, zeros_pad=True, scale=True)
         self.layers = nn.ModuleList([EncoderLayer(d_model=d_model, n_head=n_head, ffn_hidden=ffn_hidden, drop_prob=drop_prob) for _ in range(n_layers)])
     
     def forward(self, x, mask):
@@ -229,9 +248,9 @@ class DecoderLayer(nn.Module):
 
 class Decoder(nn.Module):
 
-    def __init__(self, n_layers, vocab_size, d_model, max_len, n_head, ffn_hidden, drop_prob, device) -> None:
+    def __init__(self, n_layers, vocab_size, d_model, max_len, n_head, ffn_hidden, drop_prob) -> None:
         super(Decoder, self).__init__()
-        self.embedding = TransformerEmbedding(vocab_size=vocab_size, d_model=d_model, max_len=max_len, drop_prob=drop_prob, device=device)
+        self.embedding = TransformerEmbedding(vocab_size=vocab_size, d_model=d_model, max_len=max_len, drop_prob=drop_prob, sinusoid=False, zeros_pad=False, scale=False)
         self.layers = nn.ModuleList([DecoderLayer(d_model=d_model, n_head=n_head, ffn_hidden=ffn_hidden, drop_prob=drop_prob) for _ in range(n_layers)])
         self.linear = nn.Linear(d_model, vocab_size)
     
@@ -251,15 +270,15 @@ class Transformer(nn.Module):
         self.src_pad_idx = args.src_pad_idx
         self.trg_pad_idx = args.trg_pad_idx
         self.trg_sos_idx = args.trg_sos_idx
-        self.encoder = Encoder(n_layers=args.n_layers, vocab_size=args.vocab_size_source, d_model=args.d_model, max_len=args.max_len, n_head=args.n_head, ffn_hidden=args.ffn_hidden, drop_prob=args.drop_prob, device=args.device)
-        self.decoder = Decoder(n_layers=args.n_layers, vocab_size=args.vocab_size_target, d_model=args.d_model, max_len=args.max_len, n_head=args.n_head, ffn_hidden=args.ffn_hidden, drop_prob=args.drop_prob, device=args.device)
+        self.encoder = Encoder(n_layers=args.n_layers, vocab_size=args.vocab_size_source, d_model=args.d_model, max_len=args.max_len, n_head=args.n_head, ffn_hidden=args.ffn_hidden, drop_prob=args.drop_prob, sinusoid=args.sinusoid).to(args.device)
+        self.decoder = Decoder(n_layers=args.n_layers, vocab_size=args.vocab_size_target, d_model=args.d_model, max_len=args.max_len, n_head=args.n_head, ffn_hidden=args.ffn_hidden, drop_prob=args.drop_prob, sinusoid=args.sinusoid).to(args.device)
     
     def forward(self, src, trg):
         """
         根据原始输入序列和目标输出序列，生成预测的输出序列
         """
-        src_mask = self.make_src_mask(src)  # [64, 1, 1, 50]
-        trg_mask = self.make_trg_mask(trg)  # [64, 1, 50, 50]
+        src_mask = self.make_src_mask(src)  # [batch_size, dim_placeholder_multi_head=1, dim_placeholder_d_model=1, d_model]
+        trg_mask = self.make_trg_mask(trg)  # [batch_size, dim_placeholder_multi_head=1, d_model, d_model]
         enc_output = self.encoder(x=src, mask=src_mask)
         dec_output = self.decoder(x_encoder=enc_output, x_decoder=trg, src_mask=src_mask, trg_mask=trg_mask)
         return dec_output
@@ -277,6 +296,6 @@ class Transformer(nn.Module):
         """
         trg_pad_mask = (trg != self.trg_pad_idx).unsqueeze(1).unsqueeze(3)
         trg_len = trg.shape[1]
-        trg_sub_mask = torch.tril(torch.ones(trg_len, trg_len)).type(torch.ByteTensor).to(self.device)
+        trg_sub_mask = torch.tril(torch.ones(trg_len, trg_len)).type(torch.ByteTensor)
         trg_mask = trg_pad_mask & trg_sub_mask
         return trg_mask
