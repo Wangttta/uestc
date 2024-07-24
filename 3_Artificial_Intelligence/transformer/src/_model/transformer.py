@@ -200,9 +200,9 @@ class EncoderLayer(nn.Module):
 
 class Encoder(nn.Module):
 
-    def __init__(self, n_layers, vocab_size, d_model, max_len, n_head, ffn_hidden, drop_prob) -> None:
+    def __init__(self, n_layers, vocab_size, d_model, max_len, n_head, ffn_hidden, drop_prob, sinusoid) -> None:
         super(Encoder, self).__init__()
-        self.embedding = TransformerEmbedding(vocab_size=vocab_size, d_model=d_model, max_len=max_len, drop_prob=drop_prob, sinusoid=False, zeros_pad=True, scale=True)
+        self.embedding = TransformerEmbedding(vocab_size=vocab_size, d_model=d_model, max_len=max_len, drop_prob=drop_prob, sinusoid=sinusoid, zeros_pad=True, scale=True)
         self.layers = nn.ModuleList([EncoderLayer(d_model=d_model, n_head=n_head, ffn_hidden=ffn_hidden, drop_prob=drop_prob) for _ in range(n_layers)])
     
     def forward(self, x, mask):
@@ -248,9 +248,9 @@ class DecoderLayer(nn.Module):
 
 class Decoder(nn.Module):
 
-    def __init__(self, n_layers, vocab_size, d_model, max_len, n_head, ffn_hidden, drop_prob) -> None:
+    def __init__(self, n_layers, vocab_size, d_model, max_len, n_head, ffn_hidden, drop_prob, sinusoid) -> None:
         super(Decoder, self).__init__()
-        self.embedding = TransformerEmbedding(vocab_size=vocab_size, d_model=d_model, max_len=max_len, drop_prob=drop_prob, sinusoid=False, zeros_pad=False, scale=False)
+        self.embedding = TransformerEmbedding(vocab_size=vocab_size, d_model=d_model, max_len=max_len, drop_prob=drop_prob, sinusoid=sinusoid, zeros_pad=False, scale=False)
         self.layers = nn.ModuleList([DecoderLayer(d_model=d_model, n_head=n_head, ffn_hidden=ffn_hidden, drop_prob=drop_prob) for _ in range(n_layers)])
         self.linear = nn.Linear(d_model, vocab_size)
     
