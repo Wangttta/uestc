@@ -1,6 +1,7 @@
 import os
 import sys
 
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import os
