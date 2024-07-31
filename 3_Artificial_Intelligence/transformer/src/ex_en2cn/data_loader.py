@@ -50,9 +50,9 @@ class DataLoader:
         x_list, y_list, sources, targets = [], [], [], []
         for source_sent, target_sent in zip(source_sents, target_sents):
             x = [
-                cn2idx.get(word, 1) for word in (source_sent + " </S>").split()
+                cn2idx.get(word, 1) for word in ("<S> " + source_sent + " </S>").split()
             ]  # 1: OOV, </S>: End of Text
-            y = [en2idx.get(word, 1) for word in (target_sent + " </S>").split()]
+            y = [en2idx.get(word, 1) for word in ("<S> " + target_sent + " </S>").split()]
             if max(len(x), len(y)) <= self.args.max_len:
                 x_list.append(np.array(x))
                 y_list.append(np.array(y))
@@ -141,6 +141,8 @@ class DataLoader:
         output_seq = []
         for idx in embedding:
             letter = self.idx2en[idx]
+            if letter == "<S>":
+                continue
             if letter == "</S>":
                 break
             output_seq.append(letter)

@@ -59,6 +59,9 @@ class Runner:
                 loss.backward()
                 self.optimizer.step()
                 # 2.3. 记录日志
+                print("--------------------------------------------------")
+                print(f"Epoch={epoch}, IDX={_}, Expect  => " + self.loader.embedding2text(y_batch[0].detach().numpy()))
+                print(f"Epoch={epoch}, IDX={_}, Predict => " + self.loader.embedding2text(torch.argmax(predict_batch[0], dim=-1).detach().numpy()))
                 self.batch_count += 1
                 self.writer.add_scalar("Loss", loss.item(), self.batch_count)
                 print(f"Training, Epoch={epoch}, Batch={self.batch_count}, Loss={loss.item()}")

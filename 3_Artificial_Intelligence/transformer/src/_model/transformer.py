@@ -58,13 +58,8 @@ class PositionalEmbedding(nn.Module):
         self.embedding_table = embedding_table
 
     def forward(self, x):
-        """
-        输入 row 行 Embedding（每次输入的序列长度可能不一样，不一定
-        每次都是 max_len 个），每一行代表一个单词的潜在表示。本方法返
-        回位置编码表中的前 row 行作为位置编码。
-        """
-        row = x.shape[0]
-        return self.embedding_table[:row, :]
+        _, seq_len = x.shape
+        return self.embedding_table[:seq_len, :]
     
     @classmethod
     def test_position_encoding(cls):
