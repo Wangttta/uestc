@@ -18,7 +18,6 @@ class UMEC:
         self.uav_pos = self.__init_uav()
         self.ec_pos = self.__init_ec()
         self.t_loc, e_loc = None, None
-        self.offloading_set, self.offloaded_set = [], []
         self.task, self.trajectories, self._trajectories  = self.__generate_task(), [], None
         self._ue_pos, self._uav_pos, self._task = np.copy(self.ue_pos), np.copy(self.uav_pos), np.copy(self.task)
         # 3. State & action dimension
@@ -192,12 +191,6 @@ class UMEC:
         a, b, c, fr_c, eta_los, eta_nlos = self.args.env_a, self.args.env_b, self.args.env_c, self.args.env_fr_c, self.args.env_eta_los, self.args.env_eta_nlos
         target_uav_pos = self.uav_pos[self.var_x - 1, :]  # 选择本地计算的用户这里会对应最后一个无人机
         g2a_dis = np.linalg.norm(self.ue_pos[:, :2] - target_uav_pos[:, :2], axis=-1)
-
-        nearest_ue = np.argmin(g2a_dis)
-        nearest_dis = g2a_dis[nearest_ue]
-        if nearest_dis < 100:
-            self.ue_pos[nearest_ue] = np.array([1000.0, ])
-        
         g2a_power = -b * (np.degrees(np.arctan(target_uav_pos[:, -1] / g2a_dis)) - a)
         g2a_los_prob = 1 / (1 + a * (np.e ** (g2a_power)))
         g2a_nlos_prob = 1 - g2a_los_prob
@@ -212,5 +205,4 @@ class UMEC:
         t_exe = self.task[:, 1] * ( 2 ** 23 ) * 1e-9 / self.args.cpu_uav  # 单位转化 MByte => bit, GHz => Hz
         t_edge = t_off + t_exe
         t_resp = (1 - off_idx) * t_loc + off_idx * t_edge
-        # return -sum(t_resp / t_loc) / self.M
-        return 708 - np.linalg.norm(self.uav_pos - np.array([500, 500, 0]))
+        return -sum(t_resp / t_loc) / self.M
