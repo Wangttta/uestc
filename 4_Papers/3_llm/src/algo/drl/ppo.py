@@ -178,7 +178,8 @@ class PPO:
     def select_action(self, state, mask):
         # 1. Forward
         state = torch.FloatTensor(state).to(self.device)
-        mask = torch.FloatTensor(mask).to(self.device)
+        if mask is not None:
+            mask = torch.FloatTensor(mask).to(self.device)
         with torch.no_grad():
             state_value = self.critic_old(state)
             action, log_prob, _ = self.actor_old(state, mask)
@@ -208,14 +209,15 @@ class PPO:
                 epoch_actor_loss_kl += actor_loss_kl
                 epoch_critic_loss += critic_loss
         # 3. Log info
-        train_count = self.train_counter - train_counter
-        epoch_actor_loss /= train_count
-        epoch_actor_loss_kl /= train_count
-        epoch_critic_loss /= epoch_critic_loss
-        print(f"P2. Epoch={epoch}, train_count={train_count}, actor_loss={actor_loss}, actor_kl_loss={actor_loss_kl}, critic_loss={critic_loss}")
-        writer.add_scalar('ActorLoss/Loss', epoch_actor_loss, self.train_counter)
-        writer.add_scalar('ActorLoss/KL', epoch_actor_loss_kl, self.train_counter)
-        writer.add_scalar('CriticLoss/Loss', epoch_critic_loss, self.train_counter)
+        # train_count = self.train_counter - train_counter + 1
+        # epoch_actor_loss /= train_count
+        # epoch_actor_loss_kl /= train_count
+        # epoch_critic_loss /= train_count
+        # print(f"P2. Epoch={epoch}, train_count={train_count}, actor_loss={actor_loss}, actor_kl_loss={actor_loss_kl}, critic_loss={critic_loss}, lr={self.actor_lr_scheduler.get_last_lr()}")
+        if writer is not None:
+            writer.add_scalar('ActorLoss/Loss', epoch_actor_loss, self.train_counter)
+            writer.add_scalar('ActorLoss/KL', epoch_actor_loss_kl, self.train_counter)
+            writer.add_scalar('CriticLoss/Loss', epoch_critic_loss, self.train_counter)
         # 4. Update lr & network
         self.actor_lr_scheduler.step()
         self.actor_old.load_state_dict(self.actor.state_dict())
