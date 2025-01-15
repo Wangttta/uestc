@@ -20,9 +20,10 @@ class UMEC:
         self.t_loc, e_loc = None, None
         self.task, self.trajectories, self._trajectories  = self.__generate_task(), [], None
         self._ue_pos, self._uav_pos, self._task = np.copy(self.ue_pos), np.copy(self.uav_pos), np.copy(self.task)
+        self.target_ue, self.target_dis, self.offloaded_ues = np.zeros(self.N, dtype=int), np.zeros(self.N), set()
         # 3. State & action dimension
-        self.state_dim = 4 * self.M + 3 * self.N  # 2M tasks, 2M UEs position, 3N UAVs position
-        self.action_dim = 3 * self.N     # 3N UAVs movement (each element in {-1, 0, 1})
+        self.state_dim = 4 * self.N + 3 * self.N  # 2M tasks, 2M UEs position, 3N UAVs position
+        self.action_dim = 3 * self.N     # 3N UAVs movement (continuous)
 
     def __init_ue(self):
         # Type 1: Random
@@ -78,13 +79,28 @@ class UMEC:
         actions are invalid.
         """
         # 1. State info
-        task_size = np.ones(self.M)
-        task_cpu = np.ones(self.M)
-        uav_z = np.ones(self.N)
+        task_size = np.ones(self.N)
+        task_cpu = np.ones(self.N)
         # task_size = min_max(self.task[:, 0], min_val=self.args.task_size_min, max_val=self.args.task_size_max)
         # task_cpu = min_max(self.task[:, 1], min_val=self.args.task_size_min * self.args.task_cycle_per_bit[0], max_val=self.args.task_size_max * self.args.task_cycle_per_bit[-1])
-        ue_x = min_max(self.ue_pos[:, 0], min_val=self.args.x_min, max_val=self.args.x_max)
-        ue_y = min_max(self.ue_pos[:, 1], min_val=self.args.y_min, max_val=self.args.y_max)
+        # ue_x = min_max(self.ue_pos[:, 0], min_val=self.args.x_min, max_val=self.args.x_max)
+        # ue_y = min_max(self.ue_pos[:, 1], min_val=self.args.y_min, max_val=self.args.y_max)
+
+        dis_mat = np.linalg.norm(self.ue_pos[:, np.newaxis, :] - self.uav_pos[np.newaxis, :, :], axis=2)
+        for n in range(self.N):
+            nearest_ues = np.argsort(dis_mat[:, n])[::-1]
+            offloaded_ue = -1
+            for m in nearest_ues:
+                if m not in self.offloaded_ues:
+                    offloaded_ue = m
+                    break
+            offloaded_ue = 0 if offloaded_ue == -1 else offloaded_ue
+            self.target_ue[n] = offloaded_ue
+            self.target_dis[n] = dis_mat[offloaded_ue, n]
+
+        ue_x = min_max(self.ue_pos[self.target_ue, 0], min_val=self.args.x_min, max_val=self.args.x_max)
+        ue_y = min_max(self.ue_pos[self.target_ue, 1], min_val=self.args.y_min, max_val=self.args.y_max)
+        uav_z = np.ones(self.N)
         uav_x = min_max(self.uav_pos[:, 0], min_val=self.args.x_min, max_val=self.args.x_max)
         uav_y = min_max(self.uav_pos[:, 1], min_val=self.args.y_min, max_val=self.args.y_max)
         # uav_z = min_max(self.uav_pos[:, 2], min_val=self.args.z_min, max_val=self.args.z_max)
@@ -114,6 +130,7 @@ class UMEC:
         self.step = 0
         self._trajectories = np.copy(self.trajectories)
         self.trajectories = []
+        self.target_ue, self.target_dis, self.offloaded_ues = np.zeros(self.N, dtype=int), np.zeros(self.N), set()
         self.ue_pos, self.uav_pos, self.task = np.copy(self._ue_pos), np.copy(self._uav_pos), np.copy(self._task)
 
     def step_action(self, action):
@@ -135,12 +152,12 @@ class UMEC:
         self.trajectories.append(np.copy(self.uav_pos))
         # 2. Execute action
         self.var_x = np.ones(self.M, dtype=int)  # Offloading decisions
-        self.var_w = action[:]        # UAVs movement
+        self.var_w = action[:]  # UAVs movement
         # 3. Calculate reward
         reward = self.__calc_reward()
         # 4. Next state
         self.step += 1
-        done = (self.step == self.args.t)
+        done = (self.step == self.args.t or len(self.offloaded_ues) == self.M)
         if done:
             self.reset()
         else:
@@ -182,27 +199,43 @@ class UMEC:
         (time slot) based on all decision variables
         """
         # 1. Update UAVs positions
-        self.uav_pos += self.var_w
-        # 2. Local computing: t_loc
-        off_idx = (self.var_x != 0).astype(int)
-        t_loc = self.t_loc
-        # 3. Edge computing: t_edge
-        # 3.1. Transmission: t_off
-        a, b, c, fr_c, eta_los, eta_nlos = self.args.env_a, self.args.env_b, self.args.env_c, self.args.env_fr_c, self.args.env_eta_los, self.args.env_eta_nlos
-        target_uav_pos = self.uav_pos[self.var_x - 1, :]  # 选择本地计算的用户这里会对应最后一个无人机
-        g2a_dis = np.linalg.norm(self.ue_pos[:, :2] - target_uav_pos[:, :2], axis=-1)
-        g2a_power = -b * (np.degrees(np.arctan(target_uav_pos[:, -1] / g2a_dis)) - a)
-        g2a_los_prob = 1 / (1 + a * (np.e ** (g2a_power)))
-        g2a_nlos_prob = 1 - g2a_los_prob
-        g2a_free_path_loss = 20 * np.log10(4 * np.pi / c) + 20 * np.log10(fr_c) + 20 * np.log10(g2a_dis)
-        g2a_los = g2a_free_path_loss + eta_los
-        g2a_nlos = g2a_free_path_loss + eta_nlos
-        g2a_prob_path_loss = g2a_los_prob * g2a_los + g2a_nlos_prob * g2a_nlos
-        g2a_channel_gain = 1 / g2a_prob_path_loss
-        g2a_trans_rate = self.args.b_g2a * 1e6 * np.log2(1 + self.args.p_ue_min * g2a_channel_gain / self.args.noise_g2a) / self.M  # 单位转化 MHz => Hz
-        t_off = self.task[:, 0] * ( 2 ** 23 ) / g2a_trans_rate  # 单位转化 MByte => bit
-        # 3.2. Computing: t_exe
-        t_exe = self.task[:, 1] * ( 2 ** 23 ) * 1e-9 / self.args.cpu_uav  # 单位转化 MByte => bit, GHz => Hz
-        t_edge = t_off + t_exe
-        t_resp = (1 - off_idx) * t_loc + off_idx * t_edge
-        return -sum(t_resp / t_loc) / self.M
+        uav_pos = self.uav_pos + self.var_w
+
+        dis_mat_pre = np.linalg.norm(self.ue_pos[:, np.newaxis, :] - self.uav_pos[np.newaxis, :, :], axis=2)
+        dis_mat = np.linalg.norm(self.ue_pos[:, np.newaxis, :] - uav_pos[np.newaxis, :, :], axis=2)
+
+        reward = 0
+        for n in range(self.N):
+            offloading_ue = self.target_ue[n]
+            distance_offset = dis_mat_pre[offloading_ue, n] - dis_mat[offloading_ue, n]
+            reward += ((distance_offset + 15) / 30)
+            if dis_mat[offloading_ue, n] < 200:
+                self.offloaded_ues.add(offloading_ue)
+                reward += 5
+
+        self.uav_pos = uav_pos
+        return reward
+
+        # # 2. Local computing: t_loc
+        # off_idx = (self.var_x != 0).astype(int)
+        # t_loc = self.t_loc
+        # # 3. Edge computing: t_edge
+        # # 3.1. Transmission: t_off
+        # a, b, c, fr_c, eta_los, eta_nlos = self.args.env_a, self.args.env_b, self.args.env_c, self.args.env_fr_c, self.args.env_eta_los, self.args.env_eta_nlos
+        # target_uav_pos = self.uav_pos[self.var_x - 1, :]  # 选择本地计算的用户这里会对应最后一个无人机
+        # g2a_dis = np.linalg.norm(self.ue_pos[:, :2] - target_uav_pos[:, :2], axis=-1)
+        # g2a_power = -b * (np.degrees(np.arctan(target_uav_pos[:, -1] / g2a_dis)) - a)
+        # g2a_los_prob = 1 / (1 + a * (np.e ** (g2a_power)))
+        # g2a_nlos_prob = 1 - g2a_los_prob
+        # g2a_free_path_loss = 20 * np.log10(4 * np.pi / c) + 20 * np.log10(fr_c) + 20 * np.log10(g2a_dis)
+        # g2a_los = g2a_free_path_loss + eta_los
+        # g2a_nlos = g2a_free_path_loss + eta_nlos
+        # g2a_prob_path_loss = g2a_los_prob * g2a_los + g2a_nlos_prob * g2a_nlos
+        # g2a_channel_gain = 1 / g2a_prob_path_loss
+        # g2a_trans_rate = self.args.b_g2a * 1e6 * np.log2(1 + self.args.p_ue_min * g2a_channel_gain / self.args.noise_g2a) / self.M  # 单位转化 MHz => Hz
+        # t_off = self.task[:, 0] * ( 2 ** 23 ) / g2a_trans_rate  # 单位转化 MByte => bit
+        # # 3.2. Computing: t_exe
+        # t_exe = self.task[:, 1] * ( 2 ** 23 ) * 1e-9 / self.args.cpu_uav  # 单位转化 MByte => bit, GHz => Hz
+        # t_edge = t_off + t_exe
+        # t_resp = (1 - off_idx) * t_loc + off_idx * t_edge
+        # return -sum(t_resp / t_loc) / self.M
