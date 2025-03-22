@@ -11,7 +11,7 @@ def get_args():
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--n", type=int, default=3, help="Number of agent")
     parser.add_argument("--t", type=int, default=25, help="Number of steps for each episode")
-    parser.add_argument("--n-episode", type=int, default=120000, help="Running episode")
+    parser.add_argument("--n-episode", type=int, default=200000, help="Running episode")
     parser.add_argument("--n-train", type=int, default=15, help="Training times for each episode")
     parser.add_argument("--n-eval", type=int, default=3, help="Evaluate times (num of episode)")
     parser.add_argument("--n-eval-rate", type=int, default=200, help="Evaluate frequency (num of episode)")
@@ -23,8 +23,8 @@ def get_args():
     parser.add_argument("--epsilon", type=float, default=0.2, help="Clip boundary")
     parser.add_argument("--entropy-coef", type=float, default=0.01, help="Policy entropy")
     parser.add_argument("--hidden-dim", type=int, default=64, help="The number of neurons in hidden layers of the mlp")
-    parser.add_argument("--logdir", type=str, default="../data", help="Default log directory")
-    parser.add_argument("--log-rate", type=int, default=1000, help="Logging frequency of neural network and uav trajectory")
+    parser.add_argument("--logdir", type=str, default="../runtime", help="Default log directory")
+    parser.add_argument("--log-rate", type=int, default=100, help="Logging frequency of neural network and uav trajectory")
     args = parser.parse_args()
     return args
 

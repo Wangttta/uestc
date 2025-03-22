@@ -42,11 +42,6 @@ def collect_episode(args, env, mappo, evaluate=False):
         mappo.buffer.store_episode_value(t + 1, value_n)
     return episode_reward, gif_frames
 
-def train(mappo):
-    loss = mappo.train(episode)
-    mappo.buffer.reset()
-    return np.mean(loss)
-    
 
 if __name__ == "__main__":
 
@@ -91,7 +86,9 @@ if __name__ == "__main__":
             for i in range(args.n_eval):
                 reward, _ = collect_episode(args, env, mappo, evaluate=True)
                 eval_reward += reward
-            log(f"Episode={episode}, eval_reward={eval_reward / args.n_eval}")
+            eval_reward /= args.n_eval
+            writer.add_scalar('EvalReward', eval_reward, episode)
+            log(f"Episode={episode}, eval_reward={eval_reward}")
         # 5.2. Collect experience for training
         episode_reward, gif_frames = collect_episode(args, env, mappo, evaluate=False)
         writer.add_scalar('Reward', episode_reward, episode)
@@ -101,6 +98,6 @@ if __name__ == "__main__":
             mappo.buffer.reset()  # Clear buffer
             writer.add_scalar('Loss', np.mean(loss), episode)
         # 5.4. Save model and trajectory
-        if episode % args.log_rate == 0:
+        if episode >= args.n_episode / 2 and episode % args.log_rate == 0:
             imageio.mimsave(os.path.join(args.logdir_traj, f"{episode}.gif"), gif_frames, fps=10)
             mappo.save_model(os.path.join(args.logdir_model, f"{episode}.pth"))
