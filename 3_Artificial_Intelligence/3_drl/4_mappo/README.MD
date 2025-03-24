@@ -39,8 +39,6 @@ Actor-Critic Loss 收敛曲线
 
 ## 3.2. Env render
 
-## 3.2. Env render
-
 训练阶段部分 Episode 环境渲染图
 
 <div style="display: flex; justify-content: space-between;">
