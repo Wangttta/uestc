@@ -11,3 +11,47 @@
 - PyTorch 2.2.2
 - Pettingzoo 1.24.3
 - Imageio 2.35.1
+
+# 三、部分实验结果
+
+## 3.1. Loss & Reward
+
+Actor-Critic Loss 收敛曲线
+
+- x: Training episode
+- y: Loss
+
+![Actor-Critic Loss 收敛曲线](doc/ex_ac_loss.png)
+
+训练阶段 Reward 变化曲线
+
+- x: Training episode
+- y: Environment reward
+
+![训练阶段 Reward 变化曲线](doc/ex_train_reward.png)
+
+评估 Reward 变化曲线（在训练过程中定期执行，会取消随机探索）
+
+- x: Eval episode
+- y: Environment reward
+
+![评估 Reward 变化曲线](doc/ex_eval_reward.png)
+
+## 3.2. Env render
+
+训练阶段部分 Episode 环境渲染图
+
+Episode = 100000
+![Episode = 100000](doc/env_100000.gif)
+
+Episode = 120000
+![Episode = 120000](doc/env_120000.gif)
+
+Episode = 140000
+![Episode = 140000](doc/env_140000.gif)
+
+Episode = 160000
+![Episode = 160000](doc/env_160000.gif)
+
+Episode = 180000
+![Episode = 180000](doc/env_180000.gif)
