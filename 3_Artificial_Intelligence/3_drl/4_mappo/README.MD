@@ -39,24 +39,29 @@ Actor-Critic Loss 收敛曲线
 
 ## 3.2. Env render
 
+## 3.2. Env render
+
 训练阶段部分 Episode 环境渲染图
 
-Episode = 100000
-
-![Episode = 100000](doc/env_100000.gif)
-
-Episode = 120000
-
-![Episode = 120000](doc/env_120000.gif)
-
-Episode = 140000
-
-![Episode = 140000](doc/env_140000.gif)
-
-Episode = 160000
-
-![Episode = 160000](doc/env_160000.gif)
-
-Episode = 180000
-
-![Episode = 180000](doc/env_180000.gif)
+<div style="display: flex; justify-content: space-between;">
+    <div>
+        <p>Episode = 100000</p>
+        <img src="doc/env_100000.gif" width="200" alt="Episode = 100000">
+    </div>
+    <div>
+        <p>Episode = 120000</p>
+        <img src="doc/env_120000.gif" width="200" alt="Episode = 120000">
+    </div>
+    <div>
+        <p>Episode = 140000</p>
+        <img src="doc/env_140000.gif" width="200" alt="Episode = 140000">
+    </div>
+    <div>
+        <p>Episode = 160000</p>
+        <img src="doc/env_160000.gif" width="200" alt="Episode = 160000">
+    </div>
+    <div>
+        <p>Episode = 180000</p>
+        <img src="doc/env_180000.gif" width="200" alt="Episode = 180000">
+    </div>
+</div>
