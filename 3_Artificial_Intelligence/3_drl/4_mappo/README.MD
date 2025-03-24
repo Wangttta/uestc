@@ -42,16 +42,21 @@ Actor-Critic Loss 收敛曲线
 训练阶段部分 Episode 环境渲染图
 
 Episode = 100000
+
 ![Episode = 100000](doc/env_100000.gif)
 
 Episode = 120000
+
 ![Episode = 120000](doc/env_120000.gif)
 
 Episode = 140000
+
 ![Episode = 140000](doc/env_140000.gif)
 
 Episode = 160000
+
 ![Episode = 160000](doc/env_160000.gif)
 
 Episode = 180000
+
 ![Episode = 180000](doc/env_180000.gif)
