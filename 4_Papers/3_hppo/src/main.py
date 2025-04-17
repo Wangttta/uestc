@@ -92,5 +92,5 @@ if __name__ == "__main__":
             writer.add_scalar('CriticLoss', np.mean(critic_losses), episode)
         # 5.4. Save model and trajectory  episode >= args.n_episode / 2 and 
         if episode % args.log_rate == 0:
-            env.render(args.logdir_traj, episode)
+            env.render(args.logdir_traj, episode, writer)
             ppo.save_model(args.logdir_model, episode)

@@ -107,7 +107,7 @@ class UMEC:
             mask_n[n, ~cover_vec, 1] = -np.inf
         return state, state_n, mask_n
     
-    def render(self, save_dir, episode):
+    def render(self, save_dir, episode, writer=None):
         fig = plt.figure(figsize=(10, 8), dpi=100)
         ax = fig.add_subplot(111, projection='3d')
         ax.set_xlabel("X")
@@ -124,7 +124,10 @@ class UMEC:
             ax.plot(uavs_traj[n, :, 0], uavs_traj[n, :, 1], uavs_traj[n, :, 2], 'o', color=uavs_traj_color[n], markersize=2)
         ues_color = ["#000000" if off_idx == 0 else uavs_traj_color[off_idx - 1] for off_idx in self.off_vec]
         ax.scatter(self.ues[:, 0], self.ues[:, 1], 0, marker="x", color=ues_color, s=8)
-        plt.savefig(os.path.join(save_dir, f"{episode}.png"))
+        filename = f"{episode}.png"
+        plt.savefig(os.path.join(save_dir, filename))
+        if writer is not None:
+            writer.add_figure(filename, fig, episode)
         plt.close(fig)
 
     def step_action(self, act_n_dis, act_n_con):
@@ -139,8 +142,8 @@ class UMEC:
         self.uavs[:, :3] = uav_pos
         # 3. 计算奖励
         reward_n = self.calc_reward()
-        reward_n += penalty_n_1
-        reward_n += penalty_n_2
+        reward_n -= penalty_n_1
+        reward_n -= penalty_n_2
         # 3. 更新到下一状态
         self.step += 1
         done = False
