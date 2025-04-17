@@ -10,22 +10,22 @@ from util import *
 
 
 def collect_episode(args, env: UMEC, mappo: MAHPPO, evaluate=False):
-    state, obs_n, _ = env.reset()
+    state, obs_n, mask_n = env.reset()
     episode_reward = 0
     for t in range(args.t):
         # 1. Choose action
-        act_n_dis, act_n_con, act_n_dis_logprob, act_n_con_logprob = mappo.choose_action(obs_n, evaluate)
+        act_n_dis, act_n_con, act_n_dis_logprob, act_n_con_logprob = mappo.choose_action(obs_n, mask_n, evaluate)
         # 2. Calculate state value
         value = mappo.get_value(state)
         # 3. Step action
-        state_next, obs_n_next, reward_n, done_n = env.step_action(act_n_dis, act_n_con)
+        state_next, obs_n_next, mask_n_next, reward_n, done_n = env.step_action(act_n_dis, act_n_con)
         episode_reward += np.mean(reward_n)
         # 4. Save experience
         if not evaluate:
             reward_n = reward_norm(reward_n)
-            mappo.buffer.store_transition(t, obs_n, state, value, act_n_dis, act_n_con, act_n_dis_logprob, act_n_con_logprob, reward_n, done_n)
+            mappo.buffer.store_transition(t, obs_n, mask_n, state, value, act_n_dis, act_n_con, act_n_dis_logprob, act_n_con_logprob, reward_n, done_n)
         # 5. Next state
-        state, obs_n = state_next, obs_n_next
+        state, obs_n, mask_n = state_next, obs_n_next, mask_n_next
         # 6. Done checking
         if all(done_n): 
             break

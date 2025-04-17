@@ -32,7 +32,7 @@ def get_args():
     parser.add_argument("--ue-f-max", type=int, default=5000000000, help="5GHz")
     parser.add_argument("--task-size-min", type=int, default=10485760, help="10MB")
     parser.add_argument("--task-size-max", type=int, default=20971520, help="20MB")
-    parser.add_argument("--uav-angle", type=float, default=170, help="Max UAV covering angle (flare angle)")
+    parser.add_argument("--uav-angle", type=float, default=160, help="Max UAV covering angle (flare angle)")
     parser.add_argument("--g2a-noise", type=float, default=1e-8, help="Noise of G2A link (-50 dBm, watt)")
     parser.add_argument("--env-a", type=float, default=9.61, help="env constant for calculating LoS & NLoS probability")
     parser.add_argument("--env-b", type=float, default=0.16, help="env constant for calculating LoS & NLoS probability")
@@ -55,7 +55,7 @@ def get_args():
     parser.add_argument("--entropy-coef", type=float, default=0.01, help="Policy entropy")
     parser.add_argument("--hidden-dim", type=int, default=256, help="The number of neurons in hidden layers of the mlp")
     parser.add_argument("--logdir", type=str, default="../data/runtime", help="Default log directory")
-    parser.add_argument("--log-rate", type=int, default=2, help="Logging frequency of neural network and uav trajectory")
+    parser.add_argument("--log-rate", type=int, default=100, help="Logging frequency of neural network and uav trajectory")
     args = parser.parse_args()
     return args
 

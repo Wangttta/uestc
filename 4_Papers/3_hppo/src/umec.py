@@ -99,13 +99,13 @@ class UMEC:
         task_size = minmax(self.tasks[:, 0], min_val=self.args.task_size_min, max_val=self.args.task_size_max)
         task_cpu = minmax(self.tasks[:, 1], min_val=self.args.task_size_min * 100, max_val=self.args.task_size_max * 100)
         state = np.hstack((uav_x, uav_y, uav_z, ue_x, ue_y, ue_z, task_size, task_cpu)).astype(np.float32)
-        state_n = np.empty([self.N, self.state_dim])
+        state_n, mask_n = np.empty([self.N, self.state_dim]), np.zeros((self.N, self.M, 2))
         for n in range(self.N):
-            mask = cover_mat[:, n]
-            state_n[n] = np.hstack((uav_x[:], uav_y[:], uav_z[:], np.where(mask, ue_x, -1), np.where(mask, ue_y, -1), np.where(mask, ue_z, -1), np.where(mask, task_size, -1), np.where(mask, task_cpu, -1))).astype(np.float32)
-        # 2. 离散动作的动作掩码
-        mask = None
-        return state, state_n, mask
+            cover_vec = cover_mat[:, n]
+            state_n[n] = np.hstack((uav_x[:], uav_y[:], uav_z[:], np.where(cover_vec, ue_x, -1), np.where(cover_vec, ue_y, -1), np.where(cover_vec, ue_z, -1), np.where(cover_vec, task_size, -1), np.where(cover_vec, task_cpu, -1))).astype(np.float32)
+            # 2. 离散动作的动作掩码
+            mask_n[n, ~cover_vec, 1] = -np.inf
+        return state, state_n, mask_n
     
     def render(self, save_dir, episode):
         fig = plt.figure(figsize=(10, 8), dpi=100)
@@ -118,11 +118,12 @@ class UMEC:
         ax.set_xlim(self.args.uav_x_min, self.args.uav_x_max)
         ax.set_ylim(self.args.uav_y_min, self.args.uav_y_max)
         ax.set_zlim(self.args.ue_z_min, self.args.uav_z_max)
-        uavs_traj_color = ["#ff0000", "#00ff00", "#0000ff", "#000000"]
+        uavs_traj_color = ["#ff0000", "#00ff00", "#0000ff", "#ffff00"]
         uavs_traj = np.array(self._trajectories)
         for n in range(self.N):
             ax.plot(uavs_traj[n, :, 0], uavs_traj[n, :, 1], uavs_traj[n, :, 2], 'o', color=uavs_traj_color[n], markersize=2)
-        ax.scatter(self.ues[:, 0], self.ues[:, 1], 0, marker="x", color="#000", s=6)
+        ues_color = ["#000000" if off_idx == 0 else uavs_traj_color[off_idx - 1] for off_idx in self.off_vec]
+        ax.scatter(self.ues[:, 0], self.ues[:, 1], 0, marker="x", color=ues_color, s=8)
         plt.savefig(os.path.join(save_dir, f"{episode}.png"))
         plt.close(fig)
 
@@ -145,14 +146,16 @@ class UMEC:
         done = False
         if self.step == self.T:
             done = True
-            state_next, obs_n_next, _ = self.reset()
+            state_next, obs_n_next, mask_n_next = self.reset()
         else:
             self.tasks = self.generate_tasks()
-            state_next, obs_n_next, _ = self.state()
-        return state_next, obs_n_next, reward_n, np.repeat(done, self.N)
+            state_next, obs_n_next, mask_n_next = self.state()
+        return state_next, obs_n_next, mask_n_next, reward_n, np.repeat(done, self.N)
 
     def step_uav_movement(self, uav_movement_mat):
         # 1. 检查范围约束
+        uav_movement_mat[:, 0] *= 2
+        uav_movement_mat[:, 1] *= 2
         uav_pos = self.uavs[:, :3] + uav_movement_mat
         out_bound_x = (uav_pos[:, 0] < self.args.uav_x_min) | (uav_pos[:, 0] > self.args.uav_x_max)
         out_bound_y = (uav_pos[:, 1] < self.args.uav_y_min) | (uav_pos[:, 1] > self.args.uav_y_max)
@@ -173,11 +176,15 @@ class UMEC:
         return penalty, uav_pos, dis_mat, link_mat, nearest_link_vec
     
     def step_offloading_decision(self, off_mat, dis_mat=None, link_mat=None, nearest_link_vec=None):
+        # 每个用户与每个无人机之间的距离矩阵
         dis_mat = self.dis_mat if dis_mat is None else dis_mat
+        # 每个用户与每个无人机是否可以链接的布尔矩阵
         link_mat = self.link_mat if link_mat is None else link_mat
+        # 每个用户最近可链接的无人机向量
         nearest_link_vec = self.nearest_link_vec if nearest_link_vec is None else nearest_link_vec
+        # 对于给定卸载决策，每个无人机得到的惩罚（违背卸载约束时）
         penalty = np.zeros(self.N, dtype=np.float32)
-        # 1. 计算卸载向量，并检查卸载约束
+        # 计算卸载向量，并检查卸载约束
         off_vec = np.zeros(self.M, dtype=int)
         for m in range(self.M):
             if sum(off_mat[:, m]) == 0: continue

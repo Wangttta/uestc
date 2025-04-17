@@ -29,7 +29,7 @@ class Actor(nn.Module):
         orthogonal_init(self.layer4_con_mean, gain=0.01)
         orthogonal_init(self.layer4_con_std, gain=0.01)
 
-    def forward(self, obs):
+    def forward(self, obs, mask):
         # Choose action : actor_input.shape=(N, actor_input_dim), prob.shape=(N, action_dim)
         # Train         : actor_input.shape=(mini_batch_size, t, N, actor_input_dim), prob.shape(mini_batch_size, t, N, action_dim)
         x = self.activate_func(self.layer1(obs))
@@ -37,6 +37,7 @@ class Actor(nn.Module):
         x = self.activate_func(self.layer3(x))
         x_dis = self.layer4_dis(x)
         x_dis = x_dis.contiguous().view(*x_dis.shape[:-1], self.output_dim_dis[0], self.output_dim_dis[1])
+        x_dis += mask
         dis_action_prob = torch.softmax(x_dis, dim=-1)
         con_action_mean = self.layer4_con_mean(x)
         con_action_std = self.layer4_con_std(x).clamp(-5, 2).exp()
@@ -54,13 +55,14 @@ class Agent:
         self.actor = Actor(input_dim=args.obs_dim, hidden_dim=args.hidden_dim, output_dim_dis=args.act_dim_dis, output_dim_con=args.act_dim_con)
         self.optimizer = torch.optim.Adam(self.actor.parameters(), lr=args.lr, eps=1e-5)
 
-    def choose_action(self, obs, evaluate=False):
+    def choose_action(self, obs, mask, evaluate=False):
         with torch.no_grad():
-            return self._choose_action(obs, evaluate)
+            return self._choose_action(obs, mask, evaluate)
 
-    def _choose_action(self, obs, evaluate):
+    def _choose_action(self, obs, mask, evaluate):
         obs = torch.tensor(obs, dtype=torch.float32)
-        dis_prob, con_mean, con_std = self.actor(obs)
+        mask = torch.tensor(mask, dtype=torch.float32)
+        dis_prob, con_mean, con_std = self.actor(obs, mask)
         # 1. 离散动作
         if evaluate:
             act_dis = dis_prob.argmax(dim=-1)
@@ -75,9 +77,9 @@ class Agent:
         act_con_logprob = con_prob.log_prob(act_con).numpy()
         return act_dis.numpy(), act_con.numpy(), act_dis_logprob, act_con_logprob
 
-    def train(self, advantage, obs, act_dis, act_con, dis_logprob, con_logprob):
+    def train(self, advantage, obs, mask, act_dis, act_con, dis_logprob, con_logprob):
         advantage = advantage[:, :, np.newaxis]
-        dis_prob_now, con_mean_now, con_std_now = self.actor(obs)
+        dis_prob_now, con_mean_now, con_std_now = self.actor(obs, mask)
         dis_dist_now = Categorical(dis_prob_now)
         con_dist_now = Normal(con_mean_now, con_std_now)
         dis_dist_entropy = dis_dist_now.entropy()

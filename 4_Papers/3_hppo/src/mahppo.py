@@ -14,8 +14,7 @@ from util import *
 class ReplayBuffer:
 
     def __init__(self, args):
-        self.T = args.t
-        self.N = args.n
+        self.T, self.N, self.M = args.t, args.n, args.m
         self.obs_dim = args.obs_dim
         self.act_dim_dis = args.act_dim_dis[0]
         self.act_dim_con = args.act_dim_con
@@ -29,6 +28,7 @@ class ReplayBuffer:
         self.episode_num = 0
         self.buffer = {
             'obs_n': np.empty([self.batch_size, self.T, self.N, self.obs_dim]),
+            'mask_n': np.empty([self.batch_size, self.T, self.N, self.M, 2]),
             's': np.empty([self.batch_size, self.T, self.state_dim]),
             'v_n': np.empty([self.batch_size, self.T + 1, self.N]),
             'a_n_dis': np.empty([self.batch_size, self.T, self.N, self.act_dim_dis]),
@@ -39,8 +39,9 @@ class ReplayBuffer:
             'done_n': np.empty([self.batch_size, self.T, self.N])
         }
 
-    def store_transition(self, t, obs_n, state, value_n, action_n_dis, action_n_con, action_n_dis_logprob, action_n_con_logprob, reward_n, done_n):
+    def store_transition(self, t, obs_n, mask_n, state, value_n, action_n_dis, action_n_con, action_n_dis_logprob, action_n_con_logprob, reward_n, done_n):
         self.buffer['obs_n'][self.episode_num][t] = obs_n
+        self.buffer['mask_n'][self.episode_num][t] = mask_n
         self.buffer['s'][self.episode_num][t] = state
         self.buffer['v_n'][self.episode_num][t] = value_n
         self.buffer['a_n_dis'][self.episode_num][t] = action_n_dis
@@ -100,14 +101,14 @@ class MAHPPO:
         self.optimizer = torch.optim.Adam(self.critic.parameters(), lr=self.lr, eps=1e-5)
         self.buffer = ReplayBuffer(args)
 
-    def choose_action(self, state, evaluate=False):
+    def choose_action(self, state, mask, evaluate=False):
         with torch.no_grad():
-            return self._choose_action(state, evaluate)
+            return self._choose_action(state, mask, evaluate)
 
-    def _choose_action(self, obs_n, evaluate):
+    def _choose_action(self, obs_n, mask_n, evaluate):
         act_n_dis, act_n_con, act_n_dis_logprob, act_n_con_logprob = [], [], [], []
         for agent in self.agents:
-            act_dis, act_con, act_dis_logprob, act_con_logprob = agent.choose_action(obs_n[agent.id], evaluate)
+            act_dis, act_con, act_dis_logprob, act_con_logprob = agent.choose_action(obs_n[agent.id], mask_n[agent.id], evaluate)
             act_n_dis.append(act_dis)
             act_n_con.append(act_con)
             act_n_dis_logprob.append(act_dis_logprob)
@@ -151,12 +152,13 @@ class MAHPPO:
                 # 3.2. 依次计算每个智能体的 Actor Loss
                 for agent_id, agent in enumerate(self.agents):
                     obs = batch['obs_n'][index, :, agent_id]
+                    mask = batch['mask_n'][index, :, agent_id]
                     act_dis = batch['a_n_dis'][index, :, agent_id]
                     act_con = batch['a_n_con'][index, :, agent_id]
                     dis_logprob = batch['a_n_dis_logprob'][index, :, agent_id]
                     con_logprob = batch['a_n_con_logprob'][index, :, agent_id]
                     agent_advantage = advantage[index, :, agent_id]
-                    actor_loss = agent.train(agent_advantage, obs, act_dis, act_con, dis_logprob, con_logprob)
+                    actor_loss = agent.train(agent_advantage, obs, mask, act_dis, act_con, dis_logprob, con_logprob)
                     actor_losses.append(actor_loss)
         self.lr_decay(episode)
         return actor_losses, critic_losses
