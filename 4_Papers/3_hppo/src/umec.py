@@ -124,10 +124,9 @@ class UMEC:
             ax.plot(uavs_traj[n, :, 0], uavs_traj[n, :, 1], uavs_traj[n, :, 2], 'o', color=uavs_traj_color[n], markersize=2)
         ues_color = ["#000000" if off_idx == 0 else uavs_traj_color[off_idx - 1] for off_idx in self.off_vec]
         ax.scatter(self.ues[:, 0], self.ues[:, 1], 0, marker="x", color=ues_color, s=8)
-        filename = f"{episode}.png"
-        plt.savefig(os.path.join(save_dir, filename))
+        plt.savefig(os.path.join(save_dir, f"{episode}.png"))
         if writer is not None:
-            writer.add_figure(filename, fig, episode)
+            writer.add_figure("UAVs Trajectory", fig, episode)
         plt.close(fig)
 
     def step_action(self, act_n_dis, act_n_con):
@@ -157,8 +156,6 @@ class UMEC:
 
     def step_uav_movement(self, uav_movement_mat):
         # 1. 检查范围约束
-        uav_movement_mat[:, 0] *= 2
-        uav_movement_mat[:, 1] *= 2
         uav_pos = self.uavs[:, :3] + uav_movement_mat
         out_bound_x = (uav_pos[:, 0] < self.args.uav_x_min) | (uav_pos[:, 0] > self.args.uav_x_max)
         out_bound_y = (uav_pos[:, 1] < self.args.uav_y_min) | (uav_pos[:, 1] > self.args.uav_y_max)
